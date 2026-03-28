@@ -5,40 +5,40 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Traits\ApiResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
     use ApiResponse;
-    
-   // GET /api/v1/categories
+
+    // GET /api/v1/categories
     public function index(Request $request): JsonResponse
     {
         $query = Category::query();
 
-        // search by name
-        if($request->filled('search')) {
+        // Search by name
+        if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // include posts count
+        // Include posts count
         $query->withCount('posts');
 
-        // sorting
+        // Sorting
         $sortBy = $request->get('sort_by', 'name');
         $sortOrder = $request->get('sort_order', 'asc');
         $query->orderBy($sortBy, $sortOrder);
 
-        // paginate atau all
-        if($request->boolean('all')){
+        // Pagination atau all
+        if ($request->boolean('all')) {
             $categories = $query->get();
-            return $this->successResponse($categories, 'Dafatr semua ketagori');
+            return $this->successResponse($categories, 'Daftar semua kategori');
         }
 
         $categories = $query->paginate($request->get('per_page', 10));
-        return $this->successResponse($categories, 'Daftar kategori');
+        return $this->paginatedResponse($categories, 'Daftar kategori');
     }
 
     // POST /api/v1/categories
@@ -46,12 +46,11 @@ class CategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:categories,slug',
+            'slug' => 'nullable|string|unique:categories,slug',
             'description' => 'nullable|string',
         ]);
 
-        // jika slug tidak diisi, generate otomatis dari name
-        if(empty($validated['slug'])){
+        if (empty($validated['slug'])) {
             $validated['slug'] = Str::slug($validated['name']);
         }
 
@@ -59,42 +58,68 @@ class CategoryController extends Controller
         return $this->createdResponse($category, 'Kategori berhasil dibuat');
     }
 
-   // get detail /api/v1/categories/{id}
+    // GET /api/v1/categories/{id}
     public function show(Category $category): JsonResponse
     {
-        $category->load('posts');
+        $category->loadCount('posts');
         return $this->successResponse($category, 'Detail kategori');
     }
 
-    // put/patch /api/v1/categories/{id}
-    public function update(Request $request, Category $category)
+    // PUT/PATCH /api/v1/categories/{id}
+    public function update(Request $request, Category $category): JsonResponse
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:categories,slug,' . $category->id,
+            'name' => 'sometimes|string|max:255',
+            'slug' => 'nullable|string|unique:categories,slug,' . $category->id,
             'description' => 'nullable|string',
         ]);
 
-        // jika slug tidak diisi, generate otomatis dari name
-        if(empty($validated['slug'])){
+        if (isset($validated['name']) && empty($validated['slug'])) {
             $validated['slug'] = Str::slug($validated['name']);
         }
 
         $category->update($validated);
-        return $this->successResponse($category, 'Kategori berhasil diperbarui');
+        return $this->successResponse($category, 'Kategori berhasil diupdate');
     }
 
-    // delete /api/v1/categories/{id}
+    // DELETE /api/v1/categories/{id}
     public function destroy(Category $category): JsonResponse
     {
-        // cek apakah kategori memiliki post
-        if($category->posts()->count() > 0){
-            return $this->errorResponse('Kategori tidak bisa dihapus karena memiliki post', 400); 
+        // Cek apakah kategori memiliki posts
+        if ($category->posts()->count() > 0) {
+            return $this->errorResponse(
+                'Kategori tidak dapat dihapus karena masih memiliki posts', 
+                422
+            );
         }
 
         $categoryName = $category->name;
         $category->delete();
+        
+        return $this->successResponse(null, "Kategori '{$categoryName}' berhasil dihapus");
+    }
 
-        return $this->successResponse(null, "Kategori '$categoryName' berhasil dihapus");
+    // GET /api/v1/categories/{id}/posts (Nested Resource)
+    public function posts(Category $category, Request $request): JsonResponse
+    {
+        $query = $category->posts();
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        } else {
+            // Default: hanya published
+            $query->published();
+        }
+
+        // Sorting
+        $query->orderBy('published_at', 'desc');
+        
+        $posts = $query->paginate($request->get('per_page', 10));
+        
+        return $this->paginatedResponse(
+            $posts, 
+            "Daftar posts dalam kategori '{$category->name}'"
+        );
     }
 }
