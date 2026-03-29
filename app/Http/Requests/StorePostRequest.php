@@ -6,6 +6,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
+use App\Rules\NoSpam;
 
 class StorePostRequest extends FormRequest
 {
@@ -26,9 +27,9 @@ class StorePostRequest extends FormRequest
     {
         return [
             'category_id' => 'required|exists:categories,id',
-            'title' => 'required|string|min:5|max:255',
+            'title' => 'required|string|min:5|max:255|no_spam',
             'slug' => 'nullable|string|unique:posts,slug',
-            'content' => 'required|string|min:50',
+            'content' => 'required|string|min:50|no_spam',
             'status' => 'sometimes|in:draft,published',
         ];
     }
