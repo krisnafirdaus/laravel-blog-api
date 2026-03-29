@@ -8,6 +8,9 @@ use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Http\Requests\StorePostRequest;
+use Illuminate\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class PostController extends Controller
 {
@@ -76,32 +79,9 @@ class PostController extends Controller
     }
 
     // POST /api/v1/posts
-    public function store(Request $request): JsonResponse
+    public function store(StorePostRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'title' => 'required|string|min:5|max:255',
-            'slug' => 'nullable|string|unique:posts,slug',
-            'content' => 'required|string|min:50',
-            'status' => 'sometimes|in:draft,published',
-        ], [
-            'category_id.required' => 'Kategori wajib dipilih',
-            'category_id.exists' => 'Kategori tidak ditemukan',
-            'title.required' => 'Judul wajib diisi',
-            'title.min' => 'Judul minimal 5 karakter',
-            'content.required' => 'Konten wajib diisi',
-            'content.min' => 'Konten minimal 50 karakter',
-        ]);
-
-        // Auto-generate slug
-        if (empty($validated['slug'])) {
-            $validated['slug'] = Str::slug($validated['title']);
-        }
-
-        // Set published_at jika status published
-        if (isset($validated['status']) && $validated['status'] === 'published') {
-            $validated['published_at'] = now();
-        }
+        $validated = $request->validated();
 
         $post = Post::create($validated);
         $post->load('category');
