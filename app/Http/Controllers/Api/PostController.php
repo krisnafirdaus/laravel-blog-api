@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Http\Requests\StorePostRequest;
+use App\Http\Requests\UpdatePostRequest;
 use Illuminate\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
@@ -113,15 +114,9 @@ class PostController extends Controller
     }
 
     // PUT/PATCH /api/v1/posts/{id}
-    public function update(Request $request, Post $post): JsonResponse
+    public function update(UpdatePostRequest $request, Post $post): JsonResponse
     {
-        $validated = $request->validate([
-            'category_id' => 'sometimes|exists:categories,id',
-            'title' => 'sometimes|string|min:5|max:255',
-            'slug' => 'nullable|string|unique:posts,slug,' . $post->id,
-            'content' => 'sometimes|string|min:50',
-            'status' => 'sometimes|in:draft,published',
-        ]);
+        $validated = $request->validated();
 
         if (isset($validated['title']) && empty($validated['slug'])) {
             $validated['slug'] = Str::slug($validated['title']);
