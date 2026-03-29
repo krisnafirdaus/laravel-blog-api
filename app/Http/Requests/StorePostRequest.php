@@ -27,9 +27,9 @@ class StorePostRequest extends FormRequest
     {
         return [
             'category_id' => 'required|exists:categories,id',
-            'title' => 'required|string|min:5|max:255|no_spam',
+            'title' => ['required', 'string', 'min:5', 'max:255', new NoSpam],
             'slug' => 'nullable|string|unique:posts,slug',
-            'content' => 'required|string|min:50|no_spam',
+            'content' => ['required', 'string', 'min:50', new NoSpam],
             'status' => 'sometimes|in:draft,published',
         ];
     }
