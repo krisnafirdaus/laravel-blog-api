@@ -8,6 +8,7 @@ use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Exceptions\BusinessException;
 
 class CategoryController extends Controller
 {
@@ -87,10 +88,7 @@ class CategoryController extends Controller
     {
         // Cek apakah kategori memiliki posts
         if ($category->posts()->count() > 0) {
-            return $this->errorResponse(
-                'Kategori tidak dapat dihapus karena masih memiliki posts', 
-                422
-            );
+            throw new BusinessException("Kategori tidak dapat dihapus karna memiliki post", 422);
         }
 
         $categoryName = $category->name;
