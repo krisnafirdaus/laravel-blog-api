@@ -64,6 +64,16 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // akses full token
+        // $token = $user->createToken('full-access')->plainTextToken;
+        
+        // akses read only
+        // $token = $user->createToken('read-only', ['read'])->plainTextToken;
+
+        // akases untuk manage product
+        // $token = $user->createToken('product-manage', ['product:create', 'product:update', 'product:delete'])->plainTextToken;
+        
+
         return response()->json([
             'success' => true,
             'message' => 'Login Berhasil',
@@ -77,7 +87,12 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
+        
+        // hapus semua token user
         $request->user()->currentAccessToken()->delete();
+
+        // hapus token tertentu
+        // $request->user()->where('id', $tokenId)->delete();
 
         return response()->json([
             'success' => true,

@@ -82,6 +82,13 @@ class PostController extends Controller
     // POST /api/v1/posts
     public function store(StorePostRequest $request): JsonResponse
     {
+        if(!request->user()->tokenCan('product:create')){
+            return response()->json([
+                'success' => false,
+                "message" => "aku tidak bisa membuat product"
+            ], 403);
+        };
+
         $validated = $request->validated();
 
         $post = Post::create($validated);
